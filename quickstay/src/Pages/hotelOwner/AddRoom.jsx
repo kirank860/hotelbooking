@@ -1,8 +1,13 @@
 import React, { useState } from 'react'
 import Title from '../../components/Title'
 import { assets } from '../../assets/assets'
+import { useAppcontext } from '../../contest/AppContext'
+import toast from 'react-hot-toast'
 
 const AddRoom = () => {
+
+  const {axios,getToken}=useAppcontext()
+  const [loading,setLoading]=useState(false)
     const [images, setImages]=useState({
         1:null,
         2:null,
@@ -19,8 +24,54 @@ const AddRoom = () => {
             "pool access":false,
         }
     })
+    const onSubmitHandler=async(e)=>{
+    e.preventDefault()
+    if(!inputs.roomtype|| !inputs.pricePerNight ||!inputs.amenities || !Object.values(images).some(image=>image)){
+      toast.error("please fill all the details")
+      return
+    }
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('roomtype', inputs.roomtype)
+      formData.append('pricePerNight', inputs.pricePerNight)
+      
+      // Converting Amenities to Array & keeping only enabled Amenities
+      const amenities = Object.keys(inputs.amenities).filter(key => inputs.amenities[key])
+      formData.append('amenities', JSON.stringify(amenities))
+      
+      // Adding Images to FormData
+      Object.keys(images).forEach((key) => {
+          images[key] && formData.append('images', images[key])
+      })
+      const {data}=await axios.post("/api/rooms/",formData,{headers:{
+        Authorization:`Bearer ${await getToken()}`
+      }})
+      if(data.success){
+        toast.success(data.message)
+        setInputs({
+          roomtype:'',
+          pricePerNight:0,
+          amenities:{
+            "Free wifi":false,
+            "Free Breakfast":false,
+            "Room service":false,
+            "pool access":false,
+        }
+        })
+        setImages({1:null,2:null,3:null,4:null})
+      }else{
+        toast.error(data.message)
+      }
+  } catch (error) {
+    toast.error(error.message)
+  }finally{
+    setLoading
+    (false)
+  }
+}
   return (
-<form className="space-y-6">
+<form onSubmit={(onSubmitHandler)} className="space-y-6">
   <Title
     align="left"
     font="outfit"
@@ -62,7 +113,7 @@ const AddRoom = () => {
   <div className='flex-1 max-w-48'>
     <p className='text-gray-800 mt-4'>Room Type</p>
     <select
-      value={inputs.roomType}
+      value={inputs.roomtype}
       onChange={(e) =>
         setInputs({ ...inputs, roomType: e.target.value })
       }
@@ -91,7 +142,7 @@ const AddRoom = () => {
      )
    })}
 </div>
-<button className='bg-blue-600 text-white px-8 py-2 rounded mt-8 cursor-pointer'>Add Room</button>
+<button className='bg-blue-600 text-white px-8 py-2 rounded mt-8 cursor-pointer 'disabled={loading}>{loading?"Adding...":"Add Room"}</button>
 </form>
 
   )
