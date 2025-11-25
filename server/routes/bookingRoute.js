@@ -1,5 +1,5 @@
 import  express  from "express";
-import { checkAvailabilityAPI, createBooking, getHotelBookings, getUserBookings } from "../controllers/bookingControllers.js";
+import { checkAvailabilityAPI, createBooking, getHotelBookings, getUserBookings, stripePayment } from "../controllers/bookingControllers.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 
@@ -9,4 +9,5 @@ bookingRouter.post('/check-availability',checkAvailabilityAPI)
 bookingRouter.post('/book',protect,createBooking);
 bookingRouter.post('/user',protect,getUserBookings);
 bookingRouter.post('/hotel',protect,getHotelBookings);
+bookingRouter.post('/stripe-payment',protect,stripePayment)
 export default bookingRouter
