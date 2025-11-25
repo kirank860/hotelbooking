@@ -16,7 +16,7 @@ const app=express()
 app.use(cors())
 // middleware
 //api to listen to stripe webhooks
-app.post('/api/stripe',express.raw({type:"application/json"})stripeWebhooks)
+app.post('/api/stripe',express.raw({type:"application/json"}),stripeWebhooks)
 app.use(express.json())
 app.use(clerkMiddleware())
 app.use("/api/clerk",clerkWebhooks)
