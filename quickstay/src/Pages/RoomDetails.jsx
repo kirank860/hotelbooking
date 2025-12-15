@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import {  assets, facilityIcons, roomCommonData } from '../assets/assets'
+import { assets, facilityIcons, roomCommonData } from '../assets/assets'
 import StartRating from '../components/StartRating'
 import { useAppcontext } from '../contest/AppContext'
 import toast from 'react-hot-toast'
@@ -8,81 +8,106 @@ import toast from 'react-hot-toast'
 
 const RoomDetails = () => {
   const { id } = useParams()
-  const {rooms,axios,navigate,getToken}=useAppcontext()
+  const { rooms, axios, navigate, getToken, wishlist, addToWishlist } = useAppcontext()
   const [room, setRoom] = useState(null)
   const [mainImage, setMainImage] = useState(null)
-  const [checkInDate,setCheckInDate]=useState(null)
-  const [checkOutDate,setCheckOutDate]=useState(null)
-  const [guests,setGuests]=useState(1)
-const [isAvailable,setIsAvailable]=useState(false)
-// Check if the Room is Available
-const checkAvailability = async ()=>{
-  try {
+  const [checkInDate, setCheckInDate] = useState(null)
+  const [checkOutDate, setCheckOutDate] = useState(null)
+  const [guests, setGuests] = useState(1)
+  const [isAvailable, setIsAvailable] = useState(false)
+  // Check if the Room is Available
+  const checkAvailability = async () => {
+    try {
+      if (!checkInDate || !checkOutDate) {
+        toast.error("Please select Check-In and Check-Out dates");
+        return;
+      }
       // Check is Check-In Date is greater than Check-Out Date
-      if(checkInDate >= checkOutDate){
-          toast.error('Check-In Date should be less than Check-Out Date')
-          return;
+      if (checkInDate >= checkOutDate) {
+        toast.error('Check-In Date should be less than Check-Out Date')
+        return;
       }
-      const {data} = await axios.post('/api/bookings/check-availability',
-      {room: id, checkInDate, checkOutDate})
-      if(data.success){
-          if(data.isAvailable){
-              setIsAvailable(true)
-              toast.success('Room is available')
-          }else{
-              setIsAvailable(false)
-              toast.error('Room is not available')
-          }
-      }else{
-          toast.error(data.message)
+      const { data } = await axios.post('/api/bookings/check-availability',
+        { room: id, checkInDate, checkOutDate })
+      if (data.success) {
+        if (data.isAvailable) {
+          setIsAvailable(true)
+          toast.success('Room is available')
+        } else {
+          setIsAvailable(false)
+          toast.error('Room is not available')
+        }
+      } else {
+        toast.error(data.message)
       }
-  } catch (error) {
+    } catch (error) {
       toast.error(error.message)
+    }
   }
-}
 
-// onSubmitHandler function to check availability & book the room
-const onSubmitHandler = async (e)=>{
-  try {
+  // onSubmitHandler function to check availability & book the room
+  const onSubmitHandler = async (e) => {
+    try {
       e.preventDefault();
-      if(!isAvailable){
-          return checkAvailability();
-      }else{
-          const { data } = await axios.post('/api/bookings/book', {room: id,
-          checkInDate, checkOutDate, guests, paymentMethod: "Pay At Hotel"},
-          {headers: { Authorization: `Bearer ${await getToken()}` }})
-          if (data.success){
-              toast.success(data.message)
-              navigate('/my-bookings')
-              window.scrollTo(0, 0)
-          }else{
-              toast.error(data.message)
-          }
+      if (!checkInDate || !checkOutDate) {
+        toast.error("Please select Check-In and Check-Out dates");
+        return;
       }
-  } catch (error) {
+      if (!isAvailable) {
+        return checkAvailability();
+      } else {
+        const { data } = await axios.post('/api/bookings/book', {
+          room: id,
+          checkInDate, checkOutDate, guests, paymentMethod: "Pay At Hotel"
+        },
+          { headers: { Authorization: `Bearer ${await getToken()}` } })
+        if (data.success) {
+          toast.success(data.message)
+          navigate('/my-bookings')
+          window.scrollTo(0, 0)
+        } else {
+          toast.error(data.message)
+        }
+      }
+    } catch (error) {
       toast.error(error.message)
+    }
   }
-}
-useEffect(()=>{
-  const room = rooms.find(room => room._id === id)
-  room && setRoom(room)
-  room && setMainImage(room.images[0])
-},[rooms])
+  useEffect(() => {
+    const room = rooms.find(room => room._id === id)
+    room && setRoom(room)
+    room && setMainImage(room.images[0])
+  }, [rooms])
 
   return (
     room && (
       <div className="py-28 md:py-35 px-4 md:px-16 lg:px-24 xl:px-32">
         {/* Room Details */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
-          <h1 className="text-3xl md:text-4xl font-playfair">
-            {room.hotel.name}{' '}
-            <span className="font-inter text-sm text-gray-500">
-              ({room.roomType})
-            </span>
-          </h1>
-          <p className="text-xs font-inter py-1.5 px-3 text-white bg-orange-500 rounded-full ml-2">
-            20% OFF
-          </p>
+        <div className="flex flex-col md:flex-row items-center justify-between w-full"> {/* Changed to justify-between to space title and heart */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+            <h1 className="text-3xl md:text-4xl font-playfair">
+              {room.hotel.name}{' '}
+              <span className="font-inter text-sm text-gray-500">
+                ({room.roomType})
+              </span>
+            </h1>
+            <p className="text-xs font-inter py-1.5 px-3 text-white bg-orange-500 rounded-full ml-2">
+              20% OFF
+            </p>
+          </div>
+          {/* Wishlist Button */}
+          <button
+            onClick={() => addToWishlist(room._id)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-all max-md:mt-4"
+          >
+            <img
+              src={assets.heartIcon}
+              alt="wishlist"
+              className={`w-5 h-5 transition-colors ${wishlist.includes(room._id) ? 'invert-0 sepia-0 saturate-[5000%] hue-rotate-[320deg] brightness-90 contrast-125' : 'opacity-60'}`}
+              style={wishlist.includes(room._id) ? { filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' } : {}}
+            />
+            <span className="font-medium text-sm text-gray-700">{wishlist.includes(room._id) ? "Saved" : "Save"}</span>
+          </button>
         </div>
 
         {/* Room Rating */}
@@ -114,9 +139,8 @@ useEffect(()=>{
                   onClick={() => setMainImage(image)}
                   src={image}
                   alt="Room Image"
-                  className={`w-full rounded-xl shadow-md object-cover cursor-pointer ${
-                    mainImage === image ? 'outline-3 outline-orange-500' : ''
-                  }`}
+                  className={`w-full rounded-xl shadow-md object-cover cursor-pointer ${mainImage === image ? 'outline-3 outline-orange-500' : ''
+                    }`}
                 />
               ))}
           </div>
@@ -159,12 +183,12 @@ useEffect(()=>{
         {/* =============================== */}
         <form onSubmit={onSubmitHandler} className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white shadow-[0px_0px_20px_rgba(0,0,0,0.15)] p-6 rounded-xl mx-auto mt-16 max-w-6xl">
           <div className="flex flex-col flex-wrap md:flex-row items-start md:items-center gap-4 md:gap-10 text-gray-500">
-            
+
             {/* Check-In */}
             <div className="flex flex-col">
               <label htmlFor="checkInDate" className="font-medium">Check-In</label>
               <input
-                onChange={(e)=>setCheckInDate(e.target.value)} min={new Date().toISOString().split('T')[0]} disabled={!checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)} min={new Date().toISOString().split('T')[0]}
                 type="date"
                 id="checkInDate"
                 placeholder="Check-In"
@@ -178,7 +202,7 @@ useEffect(()=>{
             <div className="flex flex-col">
               <label htmlFor="checkOutDate" className="font-medium">Check-Out</label>
               <input
-               onChange={(e)=>setCheckOutDate(e.target.value)} min={checkInDate} disabled={!checkInDate}
+                onChange={(e) => setCheckOutDate(e.target.value)} min={checkInDate} disabled={!checkInDate}
                 type="date"
                 id="checkOutDate"
                 placeholder="Check-Out"
@@ -192,7 +216,7 @@ useEffect(()=>{
             <div className="flex flex-col">
               <label htmlFor="guests" className="font-medium">Guests</label>
               <input
-              onChange={(e)=>setGuests(e.target.value)} value={guests}
+                onChange={(e) => setGuests(e.target.value)} value={guests}
                 type="number"
                 id="guests"
                 placeholder="0"
@@ -205,56 +229,56 @@ useEffect(()=>{
 
           {/* Submit Button */}
           <button
-  type="submit"
-  className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white rounded-lg w-full md:w-auto px-8 py-3 font-medium shadow-md"
->
-{isAvailable?"Book Now":"check Availability"}
-</button>
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white rounded-lg w-full md:w-auto px-8 py-3 font-medium shadow-md"
+          >
+            {isAvailable ? "Book Now" : "check Availability"}
+          </button>
 
         </form>
         {/* common spectification */}
         <div className='mt-24 space-y-4'>
-            {roomCommonData.map((spec,index)=>(
-         <div key={index} className='flex items-start gap-2'>
-        <img src={spec.icon} alt={`${spec.title}-icon`} className='w-6.5' />
-        <div>
-            <p className='text-base'>{spec.title}</p>
-            <p className='text-gary-500'>{spec.description}</p>
-        </div>
+          {roomCommonData.map((spec, index) => (
+            <div key={index} className='flex items-start gap-2'>
+              <img src={spec.icon} alt={`${spec.title}-icon`} className='w-6.5' />
+              <div>
+                <p className='text-base'>{spec.title}</p>
+                <p className='text-gary-500'>{spec.description}</p>
+              </div>
             </div>
-            ))}
+          ))}
         </div>
         <div className="max-w-3xl border-y border-gray-300 my-15 py-10 text-gray-500">
-  <p>
-    Guests will be allocated on the ground floor according to availability.
-    You get a comfortable two-bedroom apartment that has a true city feeling.
-    The price quoted is for two guests; at the guest slot, please mark the number
-    of guests to get the exact price for groups. The guests will be allocated
-    ground floor according to availability. You get the comfortable two-bedroom
-    apartment that has a true city feeling.
-  </p>
-</div>
-  {/* Hosted by */}
+          <p>
+            Guests will be allocated on the ground floor according to availability.
+            You get a comfortable two-bedroom apartment that has a true city feeling.
+            The price quoted is for two guests; at the guest slot, please mark the number
+            of guests to get the exact price for groups. The guests will be allocated
+            ground floor according to availability. You get the comfortable two-bedroom
+            apartment that has a true city feeling.
+          </p>
+        </div>
+        {/* Hosted by */}
 
-<div className="flex flex-col items-start gap-4">
-  <div className="flex gap-4">
-    <img
-      src={room.hotel.owner.image}
-      alt="Host"
-      className="h-14 w-14 md:h-18 md:w-18 rounded-full object-cover"
-    />
-    <div>
-      <p className="text-lg md:text-xl">Hosted by {room.hotel.name}</p>
-      <div className="flex items-center mt-1">
-        <StartRating />
-        <p className="ml-2">200+ reviews</p>
-      </div>
-    </div>
-  </div>
-  <button className="px-6 py-2 mt-4 rounded text-white bg-blue-600 hover:bg-primary/80 transition-all cursor-pointer">
-        Contact Now
-      </button>
-</div>
+        <div className="flex flex-col items-start gap-4">
+          <div className="flex gap-4">
+            <img
+              src={room.hotel.owner.image}
+              alt="Host"
+              className="h-14 w-14 md:h-18 md:w-18 rounded-full object-cover"
+            />
+            <div>
+              <p className="text-lg md:text-xl">Hosted by {room.hotel.name}</p>
+              <div className="flex items-center mt-1">
+                <StartRating />
+                <p className="ml-2">200+ reviews</p>
+              </div>
+            </div>
+          </div>
+          <button className="px-6 py-2 mt-4 rounded text-white bg-blue-600 hover:bg-primary/80 transition-all cursor-pointer">
+            Contact Now
+          </button>
+        </div>
 
       </div>
     )

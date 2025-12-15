@@ -17,20 +17,21 @@ export const AppProvider = ({ children }) => { // Fix: typo "childern" -> "child
     const [isOwner, setIsOwner] = useState(false)
     const [showHotelReg, setShowHotelReg] = useState(false)
     const [searchedCities, setSearchedCities] = useState([])
-    const [rooms,setRooms]=useState([])
-     
-  const fetchRooms=async()=>{
-    try {
-        const {data}=await axios.get('/api/rooms')
-        if(data.success){
-           setRooms(data.rooms) 
-        }else{
-            toast.error(data.message)
+    const [rooms, setRooms] = useState([])
+    const [wishlist, setWishlist] = useState([])
+
+    const fetchRooms = async () => {
+        try {
+            const { data } = await axios.get('/api/rooms')
+            if (data.success) {
+                setRooms(data.rooms)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
         }
-    } catch (error) {
-        toast.error(error.message)
     }
-  }
 
     const fetchUser = async () => {
         try {
@@ -39,7 +40,9 @@ export const AppProvider = ({ children }) => { // Fix: typo "childern" -> "child
             })
             if (data.success) {
                 setIsOwner(data.role === "hotelOwner")
-                setSearchedCities(data.recentSearchedCities)
+                setSearchedCities(data.recentSearchedCities || [])
+                const saved = data.savedRooms || [];
+                setWishlist(saved.map(r => r._id))
             } else {
                 setTimeout(() => {
                     fetchUser()
@@ -49,17 +52,38 @@ export const AppProvider = ({ children }) => { // Fix: typo "childern" -> "child
             toast.error(error.message)
         }
     }
-    
+
+    const addToWishlist = async (roomId) => {
+        try {
+            const { data } = await axios.post('/api/user/toggle-wishlist', { roomId }, {
+                headers: { Authorization: `Bearer ${await getToken()}` }
+            })
+            if (data.success) {
+                if (data.added) {
+                    toast.success(data.message)
+                    setWishlist(prev => [...prev, roomId])
+                } else {
+                    toast.success(data.message)
+                    setWishlist(prev => prev.filter(id => id !== roomId))
+                }
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
     useEffect(() => {
         if (user) {
             fetchUser()
         }
-    },[user])
+    }, [user])
 
-    useEffect(()=>{
+    useEffect(() => {
         fetchRooms()
-    })
-    
+    }, [])
+
     const value = {
         currency,
         navigate,
@@ -72,9 +96,12 @@ export const AppProvider = ({ children }) => { // Fix: typo "childern" -> "child
         axios,
         searchedCities,
         setSearchedCities,
-        rooms,setRooms
+        rooms, setRooms,
+        wishlist, setWishlist,
+        addToWishlist,
+        toast
     }
-    
+
     return (
         <AppContext.Provider value={value}>
             {children} {/* Fix: typo "childern" -> "children" */}

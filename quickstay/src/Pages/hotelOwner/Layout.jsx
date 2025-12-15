@@ -5,24 +5,24 @@ import { Outlet } from 'react-router-dom'
 import { useAppcontext } from '../../contest/AppContext'
 
 const Layout = () => {
-  const {isOwner,naviagte}=useAppcontext()
+  const { isOwner, navigate } = useAppcontext()
 
-  useEffect(()=>{
-    if(!isOwner){
-      naviagte('/')
+  useEffect(() => {
+    if (!isOwner) {
+      navigate('/')
     }
-  },[isOwner])
+  }, [isOwner])
   return (
     <div className='flex flex-col h-screen'>
-        <Navbar/>
-        <div className='flex h-full'>
-         <Sidebar/>
-         <div className='flex-1 p-4 pt-10 md:px-10 h-full'>
-            <Outlet/>
+      <Navbar />
+      <div className='flex h-full'>
+        <Sidebar />
+        <div className='flex-1 p-4 pt-10 md:px-10 h-full'>
+          <Outlet />
 
-         
-         </div>
+
         </div>
+      </div>
     </div>
   )
 }
